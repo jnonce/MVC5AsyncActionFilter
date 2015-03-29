@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Mvc;
 
-namespace asyncf.Controllers
+namespace jnonce.MVC.AsyncActionFilter
 {
     /// <summary>
     /// An async implementation of an action filter
@@ -32,6 +32,10 @@ namespace asyncf.Controllers
             );
 
 
+        /// <summary>
+        /// Called by the ASP.NET MVC framework before the action method executes.
+        /// </summary>
+        /// <param name="filterContext">The filter context.</param>
         public override void OnActionExecuting(ActionExecutingContext filterContext)
         {
             var state = GetRequestProcessor(filterContext);
@@ -39,6 +43,10 @@ namespace asyncf.Controllers
             base.OnActionExecuting(filterContext);
         }
 
+        /// <summary>
+        /// Called by the ASP.NET MVC framework after the action method executes.
+        /// </summary>
+        /// <param name="filterContext">The filter context.</param>
         public override void OnActionExecuted(ActionExecutedContext filterContext)
         {
             var state = GetRequestProcessor(filterContext);
@@ -46,6 +54,10 @@ namespace asyncf.Controllers
             base.OnActionExecuted(filterContext);
         }
 
+        /// <summary>
+        /// Called by the ASP.NET MVC framework before the action result executes.
+        /// </summary>
+        /// <param name="filterContext">The filter context.</param>
         public override void OnResultExecuting(ResultExecutingContext filterContext)
         {
             var state = GetRequestProcessor(filterContext);
@@ -53,6 +65,10 @@ namespace asyncf.Controllers
             base.OnResultExecuting(filterContext);
         }
 
+        /// <summary>
+        /// Called by the ASP.NET MVC framework after the action result executes.
+        /// </summary>
+        /// <param name="filterContext">The filter context.</param>
         public override void OnResultExecuted(ResultExecutedContext filterContext)
         {
             var state = GetRequestProcessor(filterContext);

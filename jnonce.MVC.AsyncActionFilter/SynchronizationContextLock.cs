@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading;
 
-namespace asyncf.Controllers
+namespace jnonce.MVC.AsyncActionFilter
 {
     /// <summary>
     /// Disposable object which sets the <see cref="SynchronizationContext"/> on

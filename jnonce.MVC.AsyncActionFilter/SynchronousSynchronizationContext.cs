@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading;
 
-namespace asyncf.Controllers
+namespace jnonce.MVC.AsyncActionFilter
 {
     /// <summary>
     /// <see cref="SynchronizationContext"/> which requires manual message pumping.
