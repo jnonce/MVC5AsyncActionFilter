@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading.Tasks;
-using System.Web;
-using System.Web.Mvc;
 using jnonce.MVC.AsyncActionFilter;
 
 namespace asyncf.Controllers
@@ -12,15 +8,14 @@ namespace asyncf.Controllers
     public class MyCoolFilter : AsyncActionFilterAttribute
     {
 
-        protected override async Task OnRequest(
-            AsyncActionFilterAttribute.IRequestContext filterContext)
+        protected override async Task OnRequest(IActionSequencer sequencer)
         {
             Debug.WriteLine("FILTER: Controller has not run yet");
 
             try
             {
                 // Do my first step
-                var actionExecutionResults = await filterContext.ExecuteAction();
+                var actionExecutionResults = await sequencer.ExecuteAction();
                 Debug.WriteLine("FILTER: Controller completed!");
                 if (actionExecutionResults.Result != null)
                 {
@@ -29,13 +24,13 @@ namespace asyncf.Controllers
 
                 //
                 await Task.Delay(1000);
-                var actionCompletionResults = await filterContext.CompleteActionProcessing();
+                var actionCompletionResults = await sequencer.CompleteActionProcessing();
                 Debug.WriteLine("FILTER: Action filters done, now filtering View");
 
                 try
                 {
                     //
-                    var resultExecutionResults = await filterContext.ExecuteResult();
+                    var resultExecutionResults = await sequencer.ExecuteResult();
                     Debug.WriteLine("FILTER: View is complete!");
 
                 }

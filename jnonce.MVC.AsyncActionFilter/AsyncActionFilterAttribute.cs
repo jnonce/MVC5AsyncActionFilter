@@ -26,9 +26,10 @@ namespace jnonce.MVC.AsyncActionFilter
         /// <summary>
         /// Called when a controller request is initiated
         /// </summary>
-        /// <returns></returns>
+        /// <param name="sequencer">The sequencer used to coordinate executing the controller and the results.</param>
+        /// <returns>A <see cref="Task"/> representing the filter's request processing</returns>
         protected abstract Task OnRequest(
-            IRequestContext filterContext
+            IActionSequencer sequencer
             );
 
 
@@ -122,7 +123,7 @@ namespace jnonce.MVC.AsyncActionFilter
         /// <summary>
         /// Stateful processor for a single request
         /// </summary>
-        private class RequestProcessor : IRequestContext
+        private class RequestProcessor : IActionSequencer
         {
             private readonly SynchronousSynchronizationContext SyncContext = new SynchronousSynchronizationContext();
             private readonly object @lock = new object();
@@ -141,7 +142,7 @@ namespace jnonce.MVC.AsyncActionFilter
                 this.SyncContext.ActionQueued += SyncContext_ActionQueued;
             }
 
-            public void OnActionExecuting(ActionExecutingContext filterContext, Func<IRequestContext, Task> begin)
+            public void OnActionExecuting(ActionExecutingContext filterContext, Func<IActionSequencer, Task> begin)
             {
                 this.ActionExecuting = filterContext;
 
@@ -294,34 +295,5 @@ namespace jnonce.MVC.AsyncActionFilter
                 }
             }
         }
-
-        /// <summary>
-        /// Context for a request being filtered
-        /// </summary>
-        public interface IRequestContext
-        {
-            /// <summary>
-            /// Gets the context information for the action executing.
-            /// </summary>
-            ActionExecutingContext ActionExecuting { get; }
-
-            /// <summary>
-            /// Executes the action.  Typically this implies invoking the controller.
-            /// </summary>
-            /// <returns>Context obtained as a result of executing the action</returns>
-            Task<ActionExecutedContext> ExecuteAction();
-
-            /// <summary>
-            /// Completes action processing, and ensures that all action filters have run
-            /// </summary>
-            /// <returns>Context obtained as a result of the completion</returns>
-            Task<ResultExecutingContext> CompleteActionProcessing();
-
-            /// <summary>
-            /// Executes the result (view).
-            /// </summary>
-            /// <returns>Context obtained as a result of the completion.</returns>
-            Task<ResultExecutedContext> ExecuteResult();
-        }        
     }
 }

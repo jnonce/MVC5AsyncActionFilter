@@ -11,24 +11,23 @@ To allow this we introduce `AsyncActionFilterAttribute` as an abstract base clas
 public class MyAsyncFilter : AsyncActionFilterAttribute
 {
 
-    protected override async Task OnRequest(
-        AsyncActionFilterAttribute.IRequestContext filterContext)
+    protected override async Task OnRequest(IActionSequencer sequencer)
     {
         // This code is executed before the action is invoked
-        // Use filterContext.ActionExecuting (ActionExecutingContext) for context
+        // Use sequencer.ActionExecuting (ActionExecutingContext) for context
 
         // Request the execution of the action and await the results
-        ActionExecutedContext actionExecutedContext = await filterContext.ExecuteAction();
+        ActionExecutedContext actionExecutedContext = await sequencer.ExecuteAction();
 
         // Code here runs before any result/view processing has started
 
         // Request that we finish all action filters
-        ResultExecutingContext resultExecutingContext = await filterContext.CompleteActionProcessing();
+        ResultExecutingContext resultExecutingContext = await sequencer.CompleteActionProcessing();
 
         // Code here runs before the results/view are executed
 
         // Request that the results are executed (view is invoked)
-        ResultExecutedContext resultExecutedContext = await filterContext.ExecuteResult();
+        ResultExecutedContext resultExecutedContext = await sequencer.ExecuteResult();
 
         // Code here is executed after the view
     }

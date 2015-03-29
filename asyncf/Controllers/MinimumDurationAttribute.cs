@@ -11,11 +11,11 @@ namespace asyncf.Controllers
     {
         public int Milliseconds { get; set; }
 
-        protected override Task OnRequest(AsyncActionFilterAttribute.IRequestContext filterContext)
+        protected override Task OnRequest(IActionSequencer sequencer)
         {
             return Task.WhenAll(
                 Task.Delay(this.Milliseconds),
-                filterContext.ExecuteAction());
+                sequencer.ExecuteAction());
         }
     }
 }
