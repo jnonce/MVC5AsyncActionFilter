@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Web;
 using System.Web.Mvc;
+using asyncf.Models;
 
 namespace asyncf.Controllers
 {
@@ -12,8 +9,9 @@ namespace asyncf.Controllers
     {
         public ActionResult Index()
         {
-            Debug.WriteLine("HomeController executing!");
-            return View();
+            this.HttpContext.Trace.Write("Controller", "executing");
+
+            return View(GetScenarios());
         }
 
         public ActionResult Fail()
@@ -22,18 +20,45 @@ namespace asyncf.Controllers
         }
 
         [MinimumDuration(Milliseconds = 3000)]
-        public ActionResult About()
+        public ActionResult Delayed()
         {
-            ViewBag.Message = "Your application description page.";
-
             return View();
         }
 
-        public ActionResult Contact()
+        public ActionResult NotFound()
         {
-            ViewBag.Message = "Your contact page.";
+            return this.HttpNotFound();
+        }
 
-            return View();
+        private ScenarioTarget[] GetScenarios()
+        {
+            return new[]
+                {
+                    new ScenarioTarget
+                    {
+                        Target = this.Url.Action("Index"),
+                        Title = "Default",
+                        Description = "Default, initial action.  That's this page."
+                    },
+                    new ScenarioTarget
+                    {
+                        Target = this.Url.Action("Delayed"),
+                        Title = "Delayed",
+                        Description = "Filter which forces a min processing delay."
+                    },
+                    new ScenarioTarget
+                    {
+                        Target = this.Url.Action("Fail"),
+                        Title = "Fail",
+                        Description = "Action which fails"
+                    },
+                    new ScenarioTarget
+                    {
+                        Target = this.Url.Action("NotFound"),
+                        Title = "NotFound",
+                        Description = "Results in a 404"
+                    },
+                };
         }
     }
 }
