@@ -14,7 +14,7 @@ namespace jnonce.MVC.AsyncActionFilter
         /// <summary>
         /// Occurs when an action is queued.
         /// </summary>
-        public event EventHandler ActionQueued;
+        public event Action ActionQueued;
 
         /// <summary>
         /// When overridden in a derived class, dispatches an asynchronous message to a synchronization context.
@@ -25,23 +25,15 @@ namespace jnonce.MVC.AsyncActionFilter
         {
             lock (@lock)
             {
-                if (action == null)
-                {
-                    action = () =>
-                    {
-                        d(state);
-                    };
-                    Monitor.Pulse(@lock);
-                }
-                else
-                {
-                    Action previousAction = action;
-                    action = () =>
+                Action previousAction = action;
+
+                action = (previousAction == null)
+                    ? new Action(() => d(state))
+                    : new Action(() =>
                     {
                         previousAction();
                         d(state);
-                    };
-                }
+                    });
             }
 
             OnActionQueued();
@@ -94,7 +86,7 @@ namespace jnonce.MVC.AsyncActionFilter
             var evnt = ActionQueued;
             if (evnt != null)
             {
-                evnt(this, EventArgs.Empty);
+                evnt();
             }
         }
     }

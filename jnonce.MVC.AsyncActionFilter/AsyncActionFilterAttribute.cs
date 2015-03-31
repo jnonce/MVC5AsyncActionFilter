@@ -28,9 +28,7 @@ namespace jnonce.MVC.AsyncActionFilter
         /// </summary>
         /// <param name="sequencer">The sequencer used to coordinate executing the controller and the results.</param>
         /// <returns>A <see cref="Task"/> representing the filter's request processing</returns>
-        protected abstract Task OnRequest(
-            IActionSequencer sequencer
-            );
+        protected abstract Task OnRequest(IActionSequencer sequencer);
 
 
         /// <summary>
@@ -125,22 +123,27 @@ namespace jnonce.MVC.AsyncActionFilter
         /// </summary>
         private class RequestProcessor : IActionSequencer
         {
+            // SyncContext allows us the run async callbacks as a message pump
             private readonly SynchronousSynchronizationContext SyncContext = new SynchronousSynchronizationContext();
+
+            // Monitor used to tell when an execution stage can progress and when new messages are ready to be pumped
             private readonly object @lock = new object();
 
-            private Task RequestExecutionTask;
-
+            // Current state of progress.  Async processing (implicitly) advances this variable which lets us know
+            // when it's OK to exit out of a processing function and allow MVC to continue execution.
             private ExecutionProgress progressAllowed = ExecutionProgress.None;
 
+            // Awaitables for the various stages of request processing
             private TaskCompletionSource<ActionExecutedContext> ActionExecuted = new TaskCompletionSource<ActionExecutedContext>();
             private TaskCompletionSource<ResultExecutingContext> ActionCompleted = new TaskCompletionSource<ResultExecutingContext>();
-            private TaskCompletionSource<ResultExecutedContext> ResultExecuted = new TaskCompletionSource<ResultExecutedContext>();
-       
+            private TaskCompletionSource<ResultExecutedContext> ResultExecuted = new TaskCompletionSource<ResultExecutedContext>();       
 
             public RequestProcessor()
             {
                 this.SyncContext.ActionQueued += SyncContext_ActionQueued;
             }
+
+            #region ActionFilterAttribute-like methods
 
             public void OnActionExecuting(ActionExecutingContext filterContext, Func<IActionSequencer, Task> begin)
             {
@@ -148,9 +151,9 @@ namespace jnonce.MVC.AsyncActionFilter
 
                 // Begin running the async operation.  As we'll be blocking execution we'll be
                 // sure to run it on the thread pool
-                using (LockContext())
+                using (SyncContext.Use())
                 {
-                    RequestExecutionTask = begin(this).ContinueWith(task =>
+                    begin(this).ContinueWith(task =>
                         {
                             // When the async operation completes signal that all steps are now free to execute.
                             AllowProgress(ExecutionProgress.EndRequest);
@@ -158,13 +161,13 @@ namespace jnonce.MVC.AsyncActionFilter
 
                     // Don't allow the controller to run until either the task has completed or
                     // it has signalled us to move on
-                    Wait(ExecutionProgress.ExecuteAction);
+                    PumpMessagesUntil(ExecutionProgress.ExecuteAction);
                 }
             }
 
             public void OnActionExecuted(ActionExecutedContext filterContext)
             {
-                using (LockContext())
+                using (SyncContext.Use())
                 {
                     // Resume the async process
                     if (filterContext.Exception != null && !filterContext.ExceptionHandled)
@@ -181,25 +184,25 @@ namespace jnonce.MVC.AsyncActionFilter
                         // Wait for the Task to complete or for it to signal us to progress
                     }
 
-                    Wait(ExecutionProgress.BeginResultComprehension);
+                    PumpMessagesUntil(ExecutionProgress.BeginResultComprehension);
                 }
             }
 
             public void OnResultExecuting(ResultExecutingContext filterContext)
             {
-                using (LockContext())
+                using (SyncContext.Use())
                 {
                     // Resume the async process
                     ActionCompleted.SetResult(filterContext);
 
                     // Wait for the Task to complete or to request we proceed
-                    Wait(ExecutionProgress.ExecuteResult);
+                    PumpMessagesUntil(ExecutionProgress.ExecuteResult);
                 }
             }
 
             public void OnResultExecuted(ResultExecutedContext filterContext)
             {
-                using (LockContext())
+                using (SyncContext.Use())
                 {
                     if (filterContext.Exception != null && !filterContext.ExceptionHandled)
                     {
@@ -210,9 +213,18 @@ namespace jnonce.MVC.AsyncActionFilter
                         ResultExecuted.SetResult(filterContext);
                     }
 
-                    Wait(ExecutionProgress.EndRequest);
+                    PumpMessagesUntil(ExecutionProgress.EndRequest);
                 }
             }
+
+            #endregion
+
+            #region IActionSequencer implementation
+
+            // The IActionSequencer implementation is used by the derived attribute classes to signal
+            // when theyr'e ready for a certain stage of MVC action processing.  These methods
+            // mark the progression state to tell our four ActionFilterAttribute-like methods when they
+            // can exit (and thereby allow MVC to continue).
 
             public ActionExecutingContext ActionExecuting
             {
@@ -238,14 +250,11 @@ namespace jnonce.MVC.AsyncActionFilter
                 return ResultExecuted.Task;
             }
 
-            private IDisposable LockContext()
-            {
-                return new SynchronizationContextLock(this.SyncContext);
-            }
+            #endregion
 
             // Wait for a callback to indicate that the requested progress is reached
             // Run the message pump until that occurs.
-            private void Wait(ExecutionProgress demandedProgress)
+            private void PumpMessagesUntil(ExecutionProgress demandedProgress)
             {
                 while (true)
                 {
@@ -287,7 +296,7 @@ namespace jnonce.MVC.AsyncActionFilter
             }
 
             // When an action is queued wake the message pump
-            private void SyncContext_ActionQueued(object sender, EventArgs e)
+            private void SyncContext_ActionQueued()
             {
                 lock (@lock)
                 {

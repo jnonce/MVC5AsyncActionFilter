@@ -7,7 +7,7 @@ namespace jnonce.MVC.AsyncActionFilter
     /// Disposable object which sets the <see cref="SynchronizationContext"/> on
     /// construction and resets on disposal.
     /// </summary>
-    internal sealed class SynchronizationContextLock : IDisposable
+    internal struct SynchronizationContextLock : IDisposable
     {
         private SynchronizationContext previous;
         private SynchronizationContext current;
@@ -21,10 +21,7 @@ namespace jnonce.MVC.AsyncActionFilter
             previous = SynchronizationContext.Current;
             current = nextContext;
 
-            if (previous != current)
-            {
-                SynchronizationContext.SetSynchronizationContext(current);
-            }
+            SynchronizationContext.SetSynchronizationContext(current);
         }
 
         /// <summary>
@@ -32,11 +29,15 @@ namespace jnonce.MVC.AsyncActionFilter
         /// </summary>
         public void Dispose()
         {
-            if (SynchronizationContext.Current == current)
-            {
-                SynchronizationContext.SetSynchronizationContext(previous);
-                current = previous;
-            }
+            SynchronizationContext.SetSynchronizationContext(previous);
+        }
+    }
+
+    internal static class SynchronizationContextExtensions
+    {
+        public static SynchronizationContextLock Use(this SynchronizationContext context)
+        {
+            return new SynchronizationContextLock(context);
         }
     }
 }
