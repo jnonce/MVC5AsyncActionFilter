@@ -36,3 +36,35 @@ public class MyAsyncFilter : AsyncActionFilterAttribute
 
 [ActionFilterAttribute]:https://github.com/aspnet/Mvc/blob/dev/src/Microsoft.AspNet.Mvc.Core/Filters/ActionFilterAttribute.cs "opt"
 [WebAPIAsync]:https://msdn.microsoft.com/en-us/library/system.web.http.filters.actionfilterattribute.onactionexecutedasync%28v=vs.118%29.aspx
+
+## ApplicationLifecycle
+
+Asp.net supports `PreApplicationStartMethodAttribute`, used to indicate a method which Asp.net
+will run before processing requests.  [WebActivator] extended this to support
+multiple routines in a single DLL, psot startup methods, as well as shutdown methods.
+
+In this library we do something similar, but rather than support separate startup and shutdown
+we support a single, async method.  This is used as such:
+
+```cs
+[assembly: ApplicationLifecycle(typeof(MyClass), "RunMe")]
+
+public static class MyClass
+{
+    public static async Task RunMe(Func<Task> next)
+    {
+        // This runs during before the webserver takes requests.
+
+        // Call next() to trigger startup for the webserver.
+        // That call will return a Task which will complete when the server is finished
+        // taking requests and begins shutdown.
+        await next();
+
+        // This code runs when the server is shutting down.
+    }
+}
+```
+
+This makes symmetric startup and shutdown behaviors fit into a single logical flow.
+
+[WebActivator]:https://github.com/davidebbo/WebActivator
