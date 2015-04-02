@@ -73,6 +73,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Application\ApplicationLifecycleAttribute.cs" />
+    <Compile Include="Application\LifecycleManager.cs" />
     <Compile Include="AsyncActionFilterAttribute.cs" />
     <Compile Include="IActionSequencer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
